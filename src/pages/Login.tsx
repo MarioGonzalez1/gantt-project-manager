@@ -28,7 +28,7 @@ export default function Login() {
       <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-md">
         <div className="text-center">
           <img 
-            src="/forza-logo.png" 
+            src="/logo.png" 
             alt="Forza Transportation Services" 
             className="mx-auto h-16 w-auto mb-4"
           />
