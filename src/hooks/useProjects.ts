@@ -11,20 +11,20 @@ export function useProjects() {
   const [loading, setLoading] = useState(true);
   const [useSupabase, setUseSupabase] = useState(false);
 
-  // Check if Supabase is configured
+   // Check if Supabase is configured
   useEffect(() => {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    setUseSupabase(!!supabaseUrl && !!supabaseKey && 
-                   supabaseUrl !== 'YOUR_SUPABASE_URL' && 
-                   supabaseKey !== 'YOUR_SUPABASE_ANON_KEY');
+    const isConfigured = !!supabaseUrl && 
+                        !!supabaseKey && 
+                        supabaseUrl !== 'YOUR_SUPABASE_URL' && 
+                        supabaseKey !== 'YOUR_SUPABASE_ANON_KEY' &&
+                        supabaseUrl !== 'undefined' &&
+                        supabaseKey !== 'undefined' &&
+                        supabaseUrl.startsWith('https://' );
+    setUseSupabase(isConfigured);
+    console.log('Supabase configured:', isConfigured);
   }, []);
-
-  // Load projects from Supabase or localStorage
-  useEffect(() => {
-    loadProjects();
-  }, [useSupabase]);
-
   // Subscribe to real-time changes
   useEffect(() => {
     if (!useSupabase) return;
