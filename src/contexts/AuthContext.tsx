@@ -54,16 +54,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserRole = async (userId: string) => {
     try {
+      console.log('🔍 Fetching user role for user ID:', userId);
+
       const { data, error } = await supabase
         .from('user_roles')
         .select('role, department, email')
         .eq('user_id', userId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error fetching user role from Supabase:', error);
+        console.error('Error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+
+        if (error.code === 'PGRST116') {
+          console.warn('⚠️ No role found for this user. Please assign a role in Supabase.');
+          console.warn('Run this query in Supabase SQL Editor:');
+          console.warn(`INSERT INTO public.user_roles (user_id, role, department, email)
+VALUES ('${userId}', 'admin', NULL, 'your-email@example.com');`);
+        }
+
+        throw error;
+      }
+
+      console.log('✅ User role fetched successfully:', data);
       setUserRole(data);
-    } catch (error) {
-      console.error('Error fetching user role:', error);
+    } catch (error: any) {
+      console.error('❌ Failed to fetch user role:', error);
       setUserRole(null);
     } finally {
       setLoading(false);

@@ -25,6 +25,12 @@ export function useProjects() {
     setUseSupabase(isConfigured);
     console.log('Supabase configured:', isConfigured);
   }, []);
+
+  // Load projects when component mounts or useSupabase changes
+  useEffect(() => {
+    loadProjects();
+  }, [useSupabase]);
+
   // Subscribe to real-time changes
   useEffect(() => {
     if (!useSupabase) return;
@@ -48,15 +54,34 @@ export function useProjects() {
   const loadProjects = async () => {
     try {
       if (useSupabase) {
+        console.log('📊 Loading projects from Supabase...');
+
         // Load from Supabase
         const { data, error } = await supabase
           .from('projects')
           .select('*')
           .order('department', { ascending: true });
 
-        if (error) throw error;
+        if (error) {
+          console.error('❌ Supabase error loading projects:', error);
+          console.error('Error details:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+          });
+
+          if (error.code === '42P01') {
+            console.error('⚠️ Table "projects" does not exist!');
+            console.error('Please run the setup script in Supabase SQL Editor.');
+            console.error('File: supabase-setup.sql');
+          }
+
+          throw error;
+        }
 
         if (data && data.length > 0) {
+          console.log(`✅ Loaded ${data.length} projects from Supabase`);
           // Convert snake_case to camelCase
           const formattedProjects = data.map(p => ({
             id: p.id,
@@ -68,33 +93,44 @@ export function useProjects() {
             dueDate: p.due_date,
             duration: p.duration,
             department: p.department,
-            description: p.description
+            description: p.description,
+            clientDepartment: p.client_department
           })) as Project[];
           setProjects(formattedProjects);
         } else {
+          console.log('📝 No projects found in Supabase. Initializing with sample data...');
           // Initialize with default data if empty
           await initializeSupabaseData();
         }
       } else {
+        console.log('💾 Loading projects from localStorage (Supabase not configured)');
         // Load from localStorage
         const storedVersion = localStorage.getItem(VERSION_KEY);
         const storedProjects = localStorage.getItem(STORAGE_KEY);
 
         if (storedVersion === CURRENT_VERSION && storedProjects) {
-          setProjects(JSON.parse(storedProjects));
+          const parsed = JSON.parse(storedProjects);
+          console.log(`✅ Loaded ${parsed.length} projects from localStorage`);
+          setProjects(parsed);
         } else {
+          console.log('📝 Initializing localStorage with sample data');
           localStorage.setItem(VERSION_KEY, CURRENT_VERSION);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(initialProjects));
           setProjects(initialProjects);
         }
       }
-    } catch (error) {
-      console.error('Error loading projects:', error);
+    } catch (error: any) {
+      console.error('❌ Error loading projects:', error);
+      console.log('🔄 Falling back to localStorage...');
+
       // Fallback to localStorage
       const storedProjects = localStorage.getItem(STORAGE_KEY);
       if (storedProjects) {
-        setProjects(JSON.parse(storedProjects));
+        const parsed = JSON.parse(storedProjects);
+        console.log(`✅ Loaded ${parsed.length} projects from localStorage (fallback)`);
+        setProjects(parsed);
       } else {
+        console.log('📝 Using initial projects data (fallback)');
         setProjects(initialProjects);
       }
     } finally {
